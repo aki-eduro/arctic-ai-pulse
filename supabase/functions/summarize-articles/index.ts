@@ -72,12 +72,11 @@ Vastaa VAIN JSON-muodossa:
     );
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Gemini API error (${response.status}):`, errorText);
       if (response.status === 429) {
         console.error("Rate limited by Gemini API, will retry later");
-        return null;
       }
-      const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
       return null;
     }
 
@@ -129,7 +128,7 @@ serve(async (req) => {
       .select("id, title, raw_excerpt, url")
       .or("summary_fi.is.null,title_fi.is.null")
       .order("created_at", { ascending: false })
-      .limit(10); // Process 10 at a time to avoid rate limits
+      .limit(5); // Process 5 at a time to respect Gemini free tier rate limits
     
     if (articlesError) {
       console.error("Error fetching articles:", articlesError);
@@ -168,8 +167,8 @@ serve(async (req) => {
         failed++;
       }
       
-      // Small delay to avoid rate limits
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Longer delay to avoid Gemini free tier rate limits (15 req/min)
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
     
     console.log(`Summarization complete. Summarized: ${summarized}, Failed: ${failed}`);
