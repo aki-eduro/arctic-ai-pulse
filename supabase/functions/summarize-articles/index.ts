@@ -46,27 +46,27 @@ Vastaa VAIN JSON-muodossa:
 }`;
 
   try {
+    // Use OpenAI-compatible endpoint which may have different rate limits
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       {
         method: "POST",
         headers: {
+          "Authorization": `Bearer ${GEMINI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [
+          model: "gemini-2.0-flash",
+          messages: [
             {
-              parts: [
-                {
-                  text: `Olet asiantunteva AI-uutisanalyytikko. Vastaat aina suomeksi ja JSON-muodossa.\n\n${prompt}`,
-                },
-              ],
+              role: "system",
+              content: "Olet asiantunteva AI-uutisanalyytikko. Vastaat aina suomeksi ja JSON-muodossa.",
+            },
+            {
+              role: "user",
+              content: prompt,
             },
           ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          },
         }),
       }
     );
@@ -81,10 +81,11 @@ Vastaa VAIN JSON-muodossa:
     }
 
     const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    // OpenAI-compatible format
+    const content = data.choices?.[0]?.message?.content;
     
     if (!content) {
-      console.error("No content in Gemini response");
+      console.error("No content in Gemini response:", JSON.stringify(data));
       return null;
     }
 
