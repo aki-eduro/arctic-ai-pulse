@@ -1,0 +1,193 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+interface Article {
+  id: string;
+  title: string;
+  raw_excerpt: string | null;
+  url: string;
+}
+
+async function generateSummary(article: Article): Promise<{
+  summary_fi: string;
+  why_it_matters: string;
+  tags: string[];
+} | null> {
+  if (!LOVABLE_API_KEY) {
+    console.error("LOVABLE_API_KEY not configured");
+    return null;
+  }
+
+  const prompt = `Olet AI-uutisasiantuntija. Analysoi seuraava artikkeli ja tuota:
+
+1. **Tiivistelmä** (2-3 lausetta suomeksi): Kerro artikkelin pääkohdat selkeästi.
+2. **Miksi tämä on tärkeää** (1 lause suomeksi): Selitä miksi tämä uutinen on merkittävä AI-alalle tai yleisölle.
+3. **Tagit** (5 kappaletta englanniksi): Relevantit avainsanat artikkelista.
+
+Artikkelin otsikko: ${article.title}
+${article.raw_excerpt ? `Artikkelin ote: ${article.raw_excerpt}` : ""}
+Artikkelin URL: ${article.url}
+
+Vastaa VAIN JSON-muodossa:
+{
+  "summary_fi": "...",
+  "why_it_matters": "...",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+}`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: "Olet asiantunteva AI-uutisanalyytikko. Vastaat aina suomeksi ja JSON-muodossa.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.error("Rate limited, will retry later");
+        return null;
+      }
+      if (response.status === 402) {
+        console.error("Payment required for AI gateway");
+        return null;
+      }
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      console.error("No content in AI response");
+      return null;
+    }
+
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("Could not find JSON in response:", content);
+      return null;
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    return {
+      summary_fi: parsed.summary_fi || "",
+      why_it_matters: parsed.why_it_matters || "",
+      tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5) : [],
+    };
+  } catch (error) {
+    console.error("Error generating summary:", error);
+    return null;
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log("Starting AI summarization...");
+    
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Get articles without summaries
+    const { data: articles, error: articlesError } = await supabase
+      .from("articles")
+      .select("id, title, raw_excerpt, url")
+      .is("summary_fi", null)
+      .order("created_at", { ascending: false })
+      .limit(10); // Process 10 at a time to avoid rate limits
+    
+    if (articlesError) {
+      console.error("Error fetching articles:", articlesError);
+      throw articlesError;
+    }
+    
+    console.log(`Found ${articles?.length || 0} articles to summarize`);
+    
+    let summarized = 0;
+    let failed = 0;
+    
+    for (const article of (articles as Article[]) || []) {
+      console.log(`Summarizing: ${article.title.slice(0, 50)}...`);
+      
+      const result = await generateSummary(article);
+      
+      if (result) {
+        const { error: updateError } = await supabase
+          .from("articles")
+          .update({
+            summary_fi: result.summary_fi,
+            why_it_matters: result.why_it_matters,
+            tags: result.tags,
+          })
+          .eq("id", article.id);
+        
+        if (updateError) {
+          console.error(`Error updating article ${article.id}:`, updateError);
+          failed++;
+        } else {
+          summarized++;
+          console.log(`Summarized successfully: ${article.title.slice(0, 50)}...`);
+        }
+      } else {
+        failed++;
+      }
+      
+      // Small delay to avoid rate limits
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    
+    console.log(`Summarization complete. Summarized: ${summarized}, Failed: ${failed}`);
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        summarized,
+        failed,
+        remaining: (articles?.length || 0) - summarized,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Summarization error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});
