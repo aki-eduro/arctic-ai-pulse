@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
 interface Article {
   id: string;
@@ -21,8 +21,8 @@ async function generateSummary(article: Article): Promise<{
   tags: string[];
   title_fi: string;
 } | null> {
-  if (!LOVABLE_API_KEY) {
-    console.error("LOVABLE_API_KEY not configured");
+  if (!GEMINI_API_KEY) {
+    console.error("GEMINI_API_KEY not configured");
     return null;
   }
 
@@ -46,46 +46,46 @@ Vastaa VAIN JSON-muodossa:
 }`;
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: "Olet asiantunteva AI-uutisanalyytikko. Vastaat aina suomeksi ja JSON-muodossa.",
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `Olet asiantunteva AI-uutisanalyytikko. Vastaat aina suomeksi ja JSON-muodossa.\n\n${prompt}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
           },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       if (response.status === 429) {
-        console.error("Rate limited, will retry later");
-        return null;
-      }
-      if (response.status === 402) {
-        console.error("Payment required for AI gateway");
+        console.error("Rate limited by Gemini API, will retry later");
         return null;
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
       return null;
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!content) {
-      console.error("No content in AI response");
+      console.error("No content in Gemini response");
       return null;
     }
 
@@ -116,7 +116,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting AI summarization...");
+    console.log("Starting AI summarization with Gemini API...");
     
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
