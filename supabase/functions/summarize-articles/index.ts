@@ -19,6 +19,7 @@ async function generateSummary(article: Article): Promise<{
   summary_fi: string;
   why_it_matters: string;
   tags: string[];
+  title_fi: string;
 } | null> {
   if (!LOVABLE_API_KEY) {
     console.error("LOVABLE_API_KEY not configured");
@@ -27,9 +28,10 @@ async function generateSummary(article: Article): Promise<{
 
   const prompt = `Olet AI-uutisasiantuntija. Analysoi seuraava artikkeli ja tuota:
 
-1. **Tiivistelmä** (2-3 lausetta suomeksi): Kerro artikkelin pääkohdat selkeästi.
-2. **Miksi tämä on tärkeää** (1 lause suomeksi): Selitä miksi tämä uutinen on merkittävä AI-alalle tai yleisölle.
-3. **Tagit** (5 kappaletta englanniksi): Relevantit avainsanat artikkelista.
+1. **Otsikko suomeksi**: Käännä artikkelin otsikko sujuvasti suomeksi. Säilytä alkuperäinen merkitys, mutta tee siitä luonnollinen suomenkielinen otsikko.
+2. **Tiivistelmä** (2-3 lausetta suomeksi): Kerro artikkelin pääkohdat selkeästi.
+3. **Miksi tämä on tärkeää** (1 lause suomeksi): Selitä miksi tämä uutinen on merkittävä AI-alalle tai yleisölle.
+4. **Tagit** (5 kappaletta englanniksi): Relevantit avainsanat artikkelista.
 
 Artikkelin otsikko: ${article.title}
 ${article.raw_excerpt ? `Artikkelin ote: ${article.raw_excerpt}` : ""}
@@ -37,6 +39,7 @@ Artikkelin URL: ${article.url}
 
 Vastaa VAIN JSON-muodossa:
 {
+  "title_fi": "...",
   "summary_fi": "...",
   "why_it_matters": "...",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
@@ -99,6 +102,7 @@ Vastaa VAIN JSON-muodossa:
       summary_fi: parsed.summary_fi || "",
       why_it_matters: parsed.why_it_matters || "",
       tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5) : [],
+      title_fi: parsed.title_fi || "",
     };
   } catch (error) {
     console.error("Error generating summary:", error);
@@ -149,6 +153,7 @@ serve(async (req) => {
             summary_fi: result.summary_fi,
             why_it_matters: result.why_it_matters,
             tags: result.tags,
+            title_fi: result.title_fi,
           })
           .eq("id", article.id);
         

@@ -21,6 +21,7 @@ interface RSSItem {
   guid?: string;
   pubDate?: string;
   description?: string;
+  imageUrl?: string;
 }
 
 interface Source {
@@ -47,6 +48,7 @@ function parseRSS(xmlText: string): RSSItem[] {
     const guid = extractTag(itemContent, "guid") || extractTag(itemContent, "id");
     const pubDate = extractTag(itemContent, "pubDate") || extractTag(itemContent, "published");
     const description = extractTag(itemContent, "description") || extractTag(itemContent, "content:encoded") || extractTag(itemContent, "summary");
+    const imageUrl = extractImageUrl(itemContent);
     
     if (title && link) {
       items.push({
@@ -55,6 +57,7 @@ function parseRSS(xmlText: string): RSSItem[] {
         guid: guid ? decodeEntities(guid) : undefined,
         pubDate: pubDate || undefined,
         description: description ? decodeEntities(stripHtml(description)).slice(0, 500) : undefined,
+        imageUrl: imageUrl || undefined,
       });
     }
   }
@@ -70,6 +73,7 @@ function parseRSS(xmlText: string): RSSItem[] {
     const guid = extractTag(entryContent, "id");
     const pubDate = extractTag(entryContent, "published") || extractTag(entryContent, "updated");
     const description = extractTag(entryContent, "summary") || extractTag(entryContent, "content");
+    const imageUrl = extractImageUrl(entryContent);
     
     if (title && link) {
       items.push({
@@ -78,11 +82,44 @@ function parseRSS(xmlText: string): RSSItem[] {
         guid: guid ? decodeEntities(guid) : undefined,
         pubDate: pubDate || undefined,
         description: description ? decodeEntities(stripHtml(description)).slice(0, 500) : undefined,
+        imageUrl: imageUrl || undefined,
       });
     }
   }
   
   return items;
+}
+
+// Extract image URL from various RSS image formats
+function extractImageUrl(content: string): string | null {
+  // Try media:content
+  const mediaMatch = content.match(/<media:content[^>]*url=["']([^"']+)["'][^>]*>/i);
+  if (mediaMatch) return mediaMatch[1];
+  
+  // Try media:thumbnail
+  const thumbMatch = content.match(/<media:thumbnail[^>]*url=["']([^"']+)["'][^>]*>/i);
+  if (thumbMatch) return thumbMatch[1];
+  
+  // Try enclosure (common for podcasts/images)
+  const enclosureMatch = content.match(/<enclosure[^>]*url=["']([^"']+)["'][^>]*type=["']image\/[^"']+["'][^>]*>/i);
+  if (enclosureMatch) return enclosureMatch[1];
+  
+  // Try alternate enclosure format
+  const enclosureMatch2 = content.match(/<enclosure[^>]*type=["']image\/[^"']+["'][^>]*url=["']([^"']+)["'][^>]*>/i);
+  if (enclosureMatch2) return enclosureMatch2[1];
+  
+  // Try image tag
+  const imageTag = extractTag(content, "image");
+  if (imageTag) {
+    const urlInImage = extractTag(imageTag, "url");
+    if (urlInImage) return urlInImage;
+  }
+  
+  // Try to find first image in description/content
+  const imgMatch = content.match(/<img[^>]*src=["']([^"']+)["'][^>]*>/i);
+  if (imgMatch) return imgMatch[1];
+  
+  return null;
 }
 
 function extractTag(content: string, tagName: string): string | null {
@@ -204,6 +241,7 @@ serve(async (req) => {
             guid: item.guid,
             published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
             raw_excerpt: item.description,
+            image_url: item.imageUrl,
             score,
             is_significant: isSignificant,
           });

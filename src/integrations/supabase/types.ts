@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           guid: string | null
           id: string
+          image_url: string | null
           is_significant: boolean
           published_at: string | null
           raw_excerpt: string | null
@@ -27,6 +28,7 @@ export type Database = {
           summary_fi: string | null
           tags: string[] | null
           title: string
+          title_fi: string | null
           updated_at: string
           url: string
           why_it_matters: string | null
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string
           guid?: string | null
           id?: string
+          image_url?: string | null
           is_significant?: boolean
           published_at?: string | null
           raw_excerpt?: string | null
@@ -43,6 +46,7 @@ export type Database = {
           summary_fi?: string | null
           tags?: string[] | null
           title: string
+          title_fi?: string | null
           updated_at?: string
           url: string
           why_it_matters?: string | null
@@ -51,6 +55,7 @@ export type Database = {
           created_at?: string
           guid?: string | null
           id?: string
+          image_url?: string | null
           is_significant?: boolean
           published_at?: string | null
           raw_excerpt?: string | null
@@ -59,6 +64,7 @@ export type Database = {
           summary_fi?: string | null
           tags?: string[] | null
           title?: string
+          title_fi?: string | null
           updated_at?: string
           url?: string
           why_it_matters?: string | null

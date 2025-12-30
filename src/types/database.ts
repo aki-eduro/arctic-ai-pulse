@@ -16,6 +16,7 @@ export interface Article {
   id: string;
   source_id: string;
   title: string;
+  title_fi: string | null;
   url: string;
   guid: string | null;
   published_at: string | null;
@@ -25,6 +26,7 @@ export interface Article {
   tags: string[];
   score: number;
   is_significant: boolean;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
   source?: Source;
