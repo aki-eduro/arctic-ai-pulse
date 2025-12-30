@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fi } from 'date-fns/locale';
-import { ExternalLink, Bookmark, BookmarkCheck, TrendingUp } from 'lucide-react';
+import { ExternalLink, Bookmark, BookmarkCheck, TrendingUp, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Article } from '@/types/database';
 
 interface ArticleCardProps {
@@ -39,15 +40,25 @@ export function ArticleCard({
     ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true, locale: fi })
     : null;
 
-  const scoreClass =
-    article.score >= 70 ? 'score-high' : article.score >= 40 ? 'score-medium' : 'score-low';
+  const getScoreInfo = (score: number) => {
+    if (score >= 70) return { class: 'score-high', label: 'Erittäin merkittävä' };
+    if (score >= 40) return { class: 'score-medium', label: 'Merkittävä' };
+    return { class: 'score-low', label: 'Tavanomainen' };
+  };
+
+  const scoreInfo = getScoreInfo(article.score);
 
   return (
-    <article className="glass-card rounded-xl p-5 glow-hover animate-slide-up group">
+    <article className={`glass-card rounded-xl p-5 glow-hover animate-slide-up group relative ${article.is_significant ? 'ring-1 ring-primary/30' : ''}`}>
+      {/* Significant indicator */}
+      {article.is_significant && (
+        <div className="absolute -top-px left-6 right-6 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent" />
+      )}
+
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Header with category and score */}
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             {article.source?.category && (
               <Badge
                 variant="outline"
@@ -57,15 +68,24 @@ export function ArticleCard({
               </Badge>
             )}
             {article.is_significant && (
-              <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30">
+              <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 font-medium">
                 <TrendingUp className="h-3 w-3 mr-1" />
                 Merkittävä
               </Badge>
             )}
             {article.score > 0 && (
-              <Badge variant="outline" className={scoreClass}>
-                {article.score}p
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className={scoreInfo.class}>
+                      {article.score} pistettä
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{scoreInfo.label}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
 
@@ -78,15 +98,27 @@ export function ArticleCard({
 
           {/* Summary */}
           {article.summary_fi && (
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+            <p className="text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
               {article.summary_fi}
             </p>
+          )}
+
+          {/* Why it matters */}
+          {article.why_it_matters && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/5 border border-accent/20 mb-3">
+              <Lightbulb className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+              <p className="text-sm text-accent-foreground/80 line-clamp-2">
+                {article.why_it_matters}
+              </p>
+            </div>
           )}
 
           {/* Meta and Tags */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              {article.source?.name && <span>{article.source.name}</span>}
+              {article.source?.name && (
+                <span className="font-medium">{article.source.name}</span>
+              )}
               {publishedAt && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
@@ -115,24 +147,42 @@ export function ArticleCard({
         {/* Actions */}
         <div className="flex flex-col gap-2 shrink-0">
           {showBookmarkButton && onToggleBookmark && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onToggleBookmark(article.id)}
-              className={isBookmarked ? 'text-primary' : 'text-muted-foreground'}
-            >
-              {isBookmarked ? (
-                <BookmarkCheck className="h-5 w-5" />
-              ) : (
-                <Bookmark className="h-5 w-5" />
-              )}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onToggleBookmark(article.id)}
+                    className={isBookmarked ? 'text-primary' : 'text-muted-foreground'}
+                  >
+                    {isBookmarked ? (
+                      <BookmarkCheck className="h-5 w-5" />
+                    ) : (
+                      <Bookmark className="h-5 w-5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isBookmarked ? 'Poista kirjanmerkki' : 'Lisää kirjanmerkki'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
-          <Button variant="ghost" size="icon" asChild className="text-muted-foreground">
-            <a href={article.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" asChild className="text-muted-foreground">
+                  <a href={article.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Avaa alkuperäinen artikkeli</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </article>
