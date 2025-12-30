@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { HeroSection } from '@/components/layout/HeroSection';
 import { FilterSidebar } from '@/components/layout/FilterSidebar';
 import { ArticleList } from '@/components/articles/ArticleList';
 import { TopBreakthroughs } from '@/components/articles/TopBreakthroughs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 import type { Article, ArticleCategory } from '@/types/database';
 
 export default function Index() {
@@ -132,6 +135,11 @@ export default function Index() {
       .slice(0, 5);
   }, [articles]);
 
+  // Significant articles count
+  const significantCount = useMemo(() => {
+    return articles.filter((a) => a.is_significant).length;
+  }, [articles]);
+
   // Handle search
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -194,13 +202,25 @@ export default function Index() {
     setSearchParams({});
   };
 
+  // Active filters count
+  const activeFiltersCount = 
+    selectedCategories.length + 
+    (selectedTimeRange !== 'all' ? 1 : 0) + 
+    (showSignificantOnly ? 1 : 0);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header onSearch={handleSearch} searchQuery={searchQuery} />
 
-      <main className="container px-4 py-8">
+      <main className="container px-4 py-8 flex-1">
+        {/* Hero Section */}
+        <HeroSection 
+          articleCount={articles.length} 
+          significantCount={significantCount} 
+        />
+
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar */}
+          {/* Sidebar - Filters */}
           <FilterSidebar
             selectedCategories={selectedCategories}
             onCategoriesChange={setSelectedCategories}
@@ -209,17 +229,19 @@ export default function Index() {
             showSignificantOnly={showSignificantOnly}
             onSignificantOnlyChange={setShowSignificantOnly}
             onClearFilters={handleClearFilters}
+            activeFiltersCount={activeFiltersCount}
           />
 
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-foreground mb-1">
-                Uusimmat AI-uutiset
-              </h1>
-              <p className="text-muted-foreground">
+              <h2 className="text-xl font-bold text-foreground mb-1">
+                Uusimmat artikkelit
+              </h2>
+              <p className="text-sm text-muted-foreground">
                 {filteredArticles.length} artikkelia
                 {searchQuery && ` haulla "${searchQuery}"`}
+                {activeFiltersCount > 0 && ` (${activeFiltersCount} suodatin aktiivinen)`}
               </p>
             </div>
 
@@ -234,12 +256,14 @@ export default function Index() {
 
           {/* Right Sidebar - Top Breakthroughs */}
           <div className="w-full lg:w-80 shrink-0">
-            <div className="sticky top-24">
+            <div className="lg:sticky lg:top-24">
               <TopBreakthroughs articles={topBreakthroughs} isLoading={isLoading} />
             </div>
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
