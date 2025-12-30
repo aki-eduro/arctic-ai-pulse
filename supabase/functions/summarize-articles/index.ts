@@ -123,11 +123,11 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get articles without summaries
+    // Get articles without summaries OR without Finnish titles
     const { data: articles, error: articlesError } = await supabase
       .from("articles")
       .select("id, title, raw_excerpt, url")
-      .is("summary_fi", null)
+      .or("summary_fi.is.null,title_fi.is.null")
       .order("created_at", { ascending: false })
       .limit(10); // Process 10 at a time to avoid rate limits
     
