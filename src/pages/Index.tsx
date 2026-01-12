@@ -21,6 +21,8 @@ export default function Index() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [topBreakthroughs, setTopBreakthroughs] = useState<Article[]>([]);
+  const [isTopBreakthroughsLoading, setIsTopBreakthroughsLoading] = useState(true);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   // Filter state
@@ -66,6 +68,37 @@ export default function Index() {
     };
 
     fetchArticles();
+  }, [toast]);
+
+  // Fetch top breakthroughs
+  useEffect(() => {
+    const fetchTopBreakthroughs = async () => {
+      setIsTopBreakthroughsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('articles')
+          .select('*, source:sources(*)')
+          .order('score', { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+        const nextArticles = (data as Article[]) || [];
+        setTopBreakthroughs(
+          nextArticles.filter((article) => article.score > 0).slice(0, 5)
+        );
+      } catch (error) {
+        console.error('Error fetching top breakthroughs:', error);
+        toast({
+          title: 'Virhe',
+          description: 'Läpimurtojen lataaminen epäonnistui.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsTopBreakthroughsLoading(false);
+      }
+    };
+
+    fetchTopBreakthroughs();
   }, [toast]);
 
   const handleLoadMore = async () => {
@@ -158,14 +191,6 @@ export default function Index() {
 
     return filtered;
   }, [articles, searchQuery, selectedCategories, selectedTimeRange, showSignificantOnly]);
-
-  // Top breakthroughs
-  const topBreakthroughs = useMemo(() => {
-    return [...articles]
-      .filter((a) => a.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-  }, [articles]);
 
   // Significant articles count
   const significantCount = useMemo(() => {
@@ -291,7 +316,10 @@ export default function Index() {
         {/* Right Sidebar - Top Breakthroughs */}
         <div className="w-full lg:w-80 shrink-0">
           <div className="lg:sticky lg:top-24">
-            <TopBreakthroughs articles={topBreakthroughs} isLoading={isLoading} />
+            <TopBreakthroughs
+              articles={topBreakthroughs}
+              isLoading={isTopBreakthroughsLoading}
+            />
           </div>
         </div>
       </div>
