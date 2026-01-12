@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 
 if (!window.matchMedia) {
   window.matchMedia = (query) => ({
@@ -13,3 +14,7 @@ if (!window.matchMedia) {
     dispatchEvent: vi.fn(),
   });
 }
+
+afterEach(() => {
+  cleanup();
+});

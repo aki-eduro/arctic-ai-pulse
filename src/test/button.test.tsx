@@ -6,6 +6,9 @@ describe("Button", () => {
   it("renders children text", () => {
     render(<Button>Click me</Button>);
 
-    expect(screen.getByRole("button", { name: /click me/i })).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: /click me/i });
+
+    expect(button).toBeInTheDocument();
+    expect(button).toBeEnabled();
   });
 });
