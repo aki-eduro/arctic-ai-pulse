@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Header } from '@/components/layout/Header';
+import { AppShell } from '@/components/layout/AppShell';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -227,9 +227,9 @@ export default function Admin() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <AppShell mainClassName="flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      </AppShell>
     );
   }
 
@@ -238,203 +238,199 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <AppShell>
+      <Link
+        to="/"
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Takaisin uutisiin
+      </Link>
 
-      <main className="container px-4 py-8">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Takaisin uutisiin
-        </Link>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Hallinta</h1>
+          <p className="text-muted-foreground">
+            Hallinnoi RSS-lähteitä ja ingestointia
+          </p>
+        </div>
 
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-1">Hallinta</h1>
-            <p className="text-muted-foreground">
-              Hallinnoi RSS-lähteitä ja ingestointia
-            </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleIngestNow}
+            disabled={isIngesting}
+          >
+            {isIngesting ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Hae uutiset nyt
+          </Button>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Lisää lähde
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Lisää uusi RSS-lähde</DialogTitle>
+                <DialogDescription>
+                  Lisää uusi RSS-syöte uutisten hakemista varten.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nimi</Label>
+                  <Input
+                    id="name"
+                    placeholder="esim. MIT Technology Review"
+                    {...register('name')}
+                  />
+                  {errors.name && (
+                    <p className="text-sm text-destructive">{errors.name.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rss_url">RSS URL</Label>
+                  <Input
+                    id="rss_url"
+                    placeholder="https://example.com/feed.xml"
+                    {...register('rss_url')}
+                  />
+                  {errors.rss_url && (
+                    <p className="text-sm text-destructive">{errors.rss_url.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Kategoria</Label>
+                  <Select
+                    value={watch('category')}
+                    onValueChange={(v) => setValue('category', v as ArticleCategory)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="weight">Painoarvo (1-10)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    min={1}
+                    max={10}
+                    {...register('weight', { valueAsNumber: true })}
+                  />
+                  {errors.weight && (
+                    <p className="text-sm text-destructive">{errors.weight.message}</p>
+                  )}
+                </div>
+
+                <DialogFooter>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Lisää lähde
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Sources Table */}
+      <div className="glass-card rounded-xl overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleIngestNow}
-              disabled={isIngesting}
-            >
-              {isIngesting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              Hae uutiset nyt
-            </Button>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Lisää lähde
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Lisää uusi RSS-lähde</DialogTitle>
-                  <DialogDescription>
-                    Lisää uusi RSS-syöte uutisten hakemista varten.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nimi</Label>
-                    <Input
-                      id="name"
-                      placeholder="esim. MIT Technology Review"
-                      {...register('name')}
-                    />
-                    {errors.name && (
-                      <p className="text-sm text-destructive">{errors.name.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rss_url">RSS URL</Label>
-                    <Input
-                      id="rss_url"
-                      placeholder="https://example.com/feed.xml"
-                      {...register('rss_url')}
-                    />
-                    {errors.rss_url && (
-                      <p className="text-sm text-destructive">{errors.rss_url.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Kategoria</Label>
-                    <Select
-                      value={watch('category')}
-                      onValueChange={(v) => setValue('category', v as ArticleCategory)}
+        ) : sources.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Ei lähteitä. Lisää ensimmäinen lähde.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nimi</TableHead>
+                <TableHead>Kategoria</TableHead>
+                <TableHead>Painoarvo</TableHead>
+                <TableHead>Tila</TableHead>
+                <TableHead className="text-right">Toiminnot</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sources.map((source) => (
+                <TableRow key={source.id}>
+                  <TableCell className="font-medium">
+                    <div>
+                      <div>{source.name}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                        {source.rss_url}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {CATEGORY_LABELS[source.category]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{source.weight}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={source.is_active ? 'default' : 'secondary'}
+                      className={source.is_active ? 'bg-accent text-accent-foreground' : ''}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="weight">Painoarvo (1-10)</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      min={1}
-                      max={10}
-                      {...register('weight', { valueAsNumber: true })}
-                    />
-                    {errors.weight && (
-                      <p className="text-sm text-destructive">{errors.weight.message}</p>
-                    )}
-                  </div>
-
-                  <DialogFooter>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      Lisää lähde
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        {/* Sources Table */}
-        <div className="glass-card rounded-xl overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : sources.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Ei lähteitä. Lisää ensimmäinen lähde.</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nimi</TableHead>
-                  <TableHead>Kategoria</TableHead>
-                  <TableHead>Painoarvo</TableHead>
-                  <TableHead>Tila</TableHead>
-                  <TableHead className="text-right">Toiminnot</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sources.map((source) => (
-                  <TableRow key={source.id}>
-                    <TableCell className="font-medium">
-                      <div>
-                        <div>{source.name}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                          {source.rss_url}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {CATEGORY_LABELS[source.category]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{source.weight}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={source.is_active ? 'default' : 'secondary'}
-                        className={source.is_active ? 'bg-accent text-accent-foreground' : ''}
+                      {source.is_active ? 'Aktiivinen' : 'Pois päältä'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleToggleActive(source)}
                       >
-                        {source.is_active ? 'Aktiivinen' : 'Pois päältä'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleActive(source)}
-                        >
-                          {source.is_active ? (
-                            <PowerOff className="h-4 w-4" />
-                          ) : (
-                            <Power className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteSource(source.id, source.name)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-      </main>
-    </div>
+                        {source.is_active ? (
+                          <PowerOff className="h-4 w-4" />
+                        ) : (
+                          <Power className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteSource(source.id, source.name)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+    </AppShell>
   );
 }
