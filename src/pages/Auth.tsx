@@ -30,7 +30,6 @@ export default function Auth() {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
   } = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
   });

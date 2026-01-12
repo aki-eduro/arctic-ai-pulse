@@ -140,11 +140,12 @@ export default function Admin() {
         .select('*')
         .order('name');
       setSources((newSources as Source[]) || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding source:', error);
+      const message = error instanceof Error ? error.message : '';
       toast({
         title: 'Virhe',
-        description: error.message.includes('duplicate')
+        description: message.includes('duplicate')
           ? 'Tämä RSS-URL on jo lisätty.'
           : 'Lähteen lisääminen epäonnistui.',
         variant: 'destructive',

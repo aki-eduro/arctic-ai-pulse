@@ -36,6 +36,30 @@ npm i
 npm run dev
 ```
 
+## Local development setup
+
+1. Copy the example env file and fill in your Supabase project values:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+2. Install dependencies and run the app:
+
+   ```sh
+   npm i
+   npm run dev
+   npm test
+   ```
+
+### Supabase Edge Functions (server-side only)
+
+Set these in your Supabase project (or local Supabase) secrets/env settings:
+
+- `SUPABASE_SERVICE_ROLE_KEY` (used by edge functions)
+- `GEMINI_API_KEY` (used by `summarize-articles`)
+- `ALLOWED_ORIGINS` (comma-separated list, e.g. `https://example.com,http://localhost:5173`)
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).

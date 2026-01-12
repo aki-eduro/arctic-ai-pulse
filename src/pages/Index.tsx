@@ -9,7 +9,6 @@ import { TopBreakthroughs } from '@/components/articles/TopBreakthroughs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
 import type { Article, ArticleCategory } from '@/types/database';
 
 export default function Index() {
