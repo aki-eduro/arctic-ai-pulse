@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { HeroSection } from '@/components/layout/HeroSection';
 import { FilterSidebar } from '@/components/layout/FilterSidebar';
 import { ArticleList } from '@/components/articles/ArticleList';
+import { Button } from '@/components/ui/button';
 import { TopBreakthroughs } from '@/components/articles/TopBreakthroughs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +18,9 @@ export default function Index() {
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   // Filter state
@@ -25,19 +29,30 @@ export default function Index() {
   const [selectedTimeRange, setSelectedTimeRange] = useState('all');
   const [showSignificantOnly, setShowSignificantOnly] = useState(false);
 
+  const PAGE_SIZE = 30;
+
+  const fetchArticlesPage = async (pageIndex: number, replace = false) => {
+    const from = pageIndex * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*, source:sources(*)')
+      .order('published_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+    const nextArticles = (data as Article[]) || [];
+    setArticles((prev) => (replace ? nextArticles : [...prev, ...nextArticles]));
+    setHasMore(nextArticles.length === PAGE_SIZE);
+  };
+
   // Fetch articles
   useEffect(() => {
     const fetchArticles = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('articles')
-          .select('*, source:sources(*)')
-          .order('published_at', { ascending: false })
-          .limit(100);
-
-        if (error) throw error;
-        setArticles((data as Article[]) || []);
+        await fetchArticlesPage(0, true);
+        setPage(0);
       } catch (error) {
         console.error('Error fetching articles:', error);
         toast({
@@ -52,6 +67,25 @@ export default function Index() {
 
     fetchArticles();
   }, [toast]);
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      await fetchArticlesPage(nextPage);
+      setPage(nextPage);
+    } catch (error) {
+      console.error('Error fetching more articles:', error);
+      toast({
+        title: 'Virhe',
+        description: 'Lisäartikkeleiden lataaminen epäonnistui.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   // Fetch bookmarks
   useEffect(() => {
@@ -244,6 +278,14 @@ export default function Index() {
             onToggleBookmark={handleToggleBookmark}
             emptyMessage="Ei artikkeleita valituilla suodattimilla."
           />
+
+          {!isLoading && hasMore && (
+            <div className="mt-8 flex justify-center">
+              <Button onClick={handleLoadMore} disabled={isLoadingMore}>
+                {isLoadingMore ? 'Ladataan lisää...' : 'Lataa lisää'}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar - Top Breakthroughs */}
