@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fi } from 'date-fns/locale';
-import { ExternalLink, Bookmark, BookmarkCheck, TrendingUp, Lightbulb, ImageOff } from 'lucide-react';
+import { ExternalLink, Bookmark, BookmarkCheck, TrendingUp, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';

@@ -1,9 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") ?? "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const baseCorsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const resolveCorsHeaders = (origin: string | null) => {
+  const allowedOrigin =
+    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  return allowedOrigin
+    ? { ...baseCorsHeaders, "Access-Control-Allow-Origin": allowedOrigin }
+    : baseCorsHeaders;
 };
 
 // Keywords for scoring
@@ -170,6 +183,8 @@ function calculateScore(item: RSSItem, sourceWeight: number): number {
 }
 
 serve(async (req) => {
+  const corsHeaders = resolveCorsHeaders(req.headers.get("Origin"));
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import {
   ArrowLeft,
