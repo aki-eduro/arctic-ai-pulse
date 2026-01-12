@@ -38,6 +38,8 @@ describe("App routing", () => {
   it("renders the index route", async () => {
     render(<App />);
 
-    expect(await screen.findByText(/uusimmat artikkelit/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /uusimmat artikkelit/i }),
+    ).toBeInTheDocument();
   });
 });
