@@ -20,6 +20,7 @@ vi.mock("@/integrations/supabase/client", () => {
   const createQuery = () => ({
     select: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    range: vi.fn().mockResolvedValue({ data: [], error: null }),
     limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     eq: vi.fn().mockResolvedValue({ data: [], error: null }),
     delete: vi.fn().mockReturnThis(),
