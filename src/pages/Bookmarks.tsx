@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { Header } from '@/components/layout/Header';
+import { AppShell } from '@/components/layout/AppShell';
 import { ArticleList } from '@/components/articles/ArticleList';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -90,40 +90,36 @@ export default function Bookmarks() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <AppShell mainClassName="flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <AppShell>
+      <Link
+        to="/"
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Takaisin uutisiin
+      </Link>
 
-      <main className="container px-4 py-8">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Takaisin uutisiin
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">Kirjanmerkit</h1>
+        <p className="text-muted-foreground">
+          {articles.length} tallennettua artikkelia
+        </p>
+      </div>
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground mb-1">Kirjanmerkit</h1>
-          <p className="text-muted-foreground">
-            {articles.length} tallennettua artikkelia
-          </p>
-        </div>
-
-        <ArticleList
-          articles={articles}
-          isLoading={isLoading}
-          bookmarkedIds={bookmarkedIds}
-          onToggleBookmark={handleToggleBookmark}
-          emptyMessage="Ei tallennettuja artikkeleita."
-        />
-      </main>
-    </div>
+      <ArticleList
+        articles={articles}
+        isLoading={isLoading}
+        bookmarkedIds={bookmarkedIds}
+        onToggleBookmark={handleToggleBookmark}
+        emptyMessage="Ei tallennettuja artikkeleita."
+      />
+    </AppShell>
   );
 }

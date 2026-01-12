@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+import { AppShell } from '@/components/layout/AppShell';
 import { HeroSection } from '@/components/layout/HeroSection';
 import { FilterSidebar } from '@/components/layout/FilterSidebar';
 import { ArticleList } from '@/components/articles/ArticleList';
@@ -208,61 +207,52 @@ export default function Index() {
     (showSignificantOnly ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header onSearch={handleSearch} searchQuery={searchQuery} />
+    <AppShell headerProps={{ onSearch: handleSearch, searchQuery }}>
+      {/* Hero Section */}
+      <HeroSection articleCount={articles.length} significantCount={significantCount} />
 
-      <main className="container px-4 py-8 flex-1">
-        {/* Hero Section */}
-        <HeroSection 
-          articleCount={articles.length} 
-          significantCount={significantCount} 
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Sidebar - Filters */}
+        <FilterSidebar
+          selectedCategories={selectedCategories}
+          onCategoriesChange={setSelectedCategories}
+          selectedTimeRange={selectedTimeRange}
+          onTimeRangeChange={setSelectedTimeRange}
+          showSignificantOnly={showSignificantOnly}
+          onSignificantOnlyChange={setShowSignificantOnly}
+          onClearFilters={handleClearFilters}
+          activeFiltersCount={activeFiltersCount}
         />
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar - Filters */}
-          <FilterSidebar
-            selectedCategories={selectedCategories}
-            onCategoriesChange={setSelectedCategories}
-            selectedTimeRange={selectedTimeRange}
-            onTimeRangeChange={setSelectedTimeRange}
-            showSignificantOnly={showSignificantOnly}
-            onSignificantOnlyChange={setShowSignificantOnly}
-            onClearFilters={handleClearFilters}
-            activeFiltersCount={activeFiltersCount}
-          />
-
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-foreground mb-1">
-                Uusimmat artikkelit
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {filteredArticles.length} artikkelia
-                {searchQuery && ` haulla "${searchQuery}"`}
-                {activeFiltersCount > 0 && ` (${activeFiltersCount} suodatin aktiivinen)`}
-              </p>
-            </div>
-
-            <ArticleList
-              articles={filteredArticles}
-              isLoading={isLoading}
-              bookmarkedIds={bookmarkedIds}
-              onToggleBookmark={handleToggleBookmark}
-              emptyMessage="Ei artikkeleita valituilla suodattimilla."
-            />
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-foreground mb-1">
+              Uusimmat artikkelit
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {filteredArticles.length} artikkelia
+              {searchQuery && ` haulla "${searchQuery}"`}
+              {activeFiltersCount > 0 && ` (${activeFiltersCount} suodatin aktiivinen)`}
+            </p>
           </div>
 
-          {/* Right Sidebar - Top Breakthroughs */}
-          <div className="w-full lg:w-80 shrink-0">
-            <div className="lg:sticky lg:top-24">
-              <TopBreakthroughs articles={topBreakthroughs} isLoading={isLoading} />
-            </div>
+          <ArticleList
+            articles={filteredArticles}
+            isLoading={isLoading}
+            bookmarkedIds={bookmarkedIds}
+            onToggleBookmark={handleToggleBookmark}
+            emptyMessage="Ei artikkeleita valituilla suodattimilla."
+          />
+        </div>
+
+        {/* Right Sidebar - Top Breakthroughs */}
+        <div className="w-full lg:w-80 shrink-0">
+          <div className="lg:sticky lg:top-24">
+            <TopBreakthroughs articles={topBreakthroughs} isLoading={isLoading} />
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppShell>
   );
 }
